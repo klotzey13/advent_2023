@@ -16,7 +16,7 @@ func check(e error) {
 
 func main() {
 
-	filePath := "./challenge_1/input.txt"
+	filePath := "./challenge_1/gavin.txt"
 
 	f, err := os.Open(filePath)
 	check(err)
