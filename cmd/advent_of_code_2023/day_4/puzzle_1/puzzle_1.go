@@ -26,6 +26,8 @@ func main() {
 
 	f, err := os.Open("../input/puzzle.txt")
 	checkError(err)
+	defer f.Close()
+
 	r := bufio.NewReader(f)
 	s := bufio.NewScanner(r)
 
