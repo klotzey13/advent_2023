@@ -12,6 +12,7 @@ func main() {
 	fmt.Println(q.String())
 }
 
+// TODO Cleanup into seperate packages
 func LinearSearch(arr []int, target int) int {
 	for i, val := range arr {
 		if val == target {
