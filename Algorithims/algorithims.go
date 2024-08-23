@@ -1,7 +1,15 @@
 package main
 
-func main() {
+import (
+	"algorithims/queue"
+	"fmt"
+)
 
+func main() {
+	q := queue.Queue[int]{}
+	q.Enqueue(1)
+	q.Enqueue(2)
+	fmt.Println(q.String())
 }
 
 func LinearSearch(arr []int, target int) int {
