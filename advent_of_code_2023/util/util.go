@@ -35,3 +35,26 @@ func Check(e error) {
 		panic(e)
 	}
 }
+
+type Comparable interface {
+	Compare(other Comparable) int
+}
+
+func BinarySearch[T Comparable](slice []T, target T) int {
+	low, high := 0, len(slice)-1
+
+	for low <= high {
+		mid := low + (high-low)/2 // Avoid potential overflow
+
+		cmp := target.Compare(slice[mid])
+		if cmp < 0 {
+			high = mid - 1
+		} else if cmp > 0 {
+			low = mid + 1
+		} else {
+			return mid
+		}
+	}
+
+	return -1
+}

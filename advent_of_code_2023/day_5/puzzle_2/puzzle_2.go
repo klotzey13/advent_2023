@@ -8,6 +8,7 @@ import (
 	"path"
 	"strconv"
 	"strings"
+	"time"
 )
 
 type SourceToDestinationMapper struct {
@@ -16,18 +17,9 @@ type SourceToDestinationMapper struct {
 	rangeLength      int
 }
 
-type MappedSeed struct {
-	seed        int
-	soil        int
-	fertilizer  int
-	water       int
-	light       int
-	tempurature int
-	humidity    int
-	location    int
-}
-
 func Puzzle_2() {
+	startTime := time.Now()
+
 	filePath := path.Join("day_5", "input", "puzzle.txt")
 	file, err := os.Open(filePath)
 	steveutil.Check(err)
@@ -66,141 +58,105 @@ func Puzzle_2() {
 		}
 	}
 
-	newSeeds := []int{}
+	newSeeds := [][]int{}
+	// Map Seeds to low/min for each seed
 	for i := 0; i < len(seeds); i = i + 2 {
-		for j := 0; j < seeds[i+1]; j++ {
-			newSeeds = append(newSeeds, seeds[i]+j)
+		min := seeds[i]
+		max := seeds[i] + (seeds[i+1] - 1)
+		newSeeds = append(newSeeds, []int{min, max})
+	}
+
+	locationMapper := mappings["humidity-to-location"]
+	locations := [][]int{}
+	getMinMaxAndSort(&locations, locationMapper)
+
+	tempuratureMapper := mappings["temperature-to-humidity"]
+	tempurature := [][]int{}
+	getMinMaxAndSort(&tempurature, tempuratureMapper)
+
+	lightMapper := mappings["light-to-temperature"]
+	light := [][]int{}
+	getMinMaxAndSort(&light, lightMapper)
+
+	waterMapper := mappings["water-to-light"]
+	water := [][]int{}
+	getMinMaxAndSort(&water, waterMapper)
+
+	fertilizerMapper := mappings["fertilizer-to-water"]
+	fertilizer := [][]int{}
+	getMinMaxAndSort(&fertilizer, fertilizerMapper)
+
+	soilMapper := mappings["soil-to-fertilizer"]
+	soil := [][]int{}
+	getMinMaxAndSort(&soil, soilMapper)
+
+	seedMapper := mappings["seed-to-soil"]
+	mseeds := [][]int{}
+	getMinMaxAndSort(&mseeds, seedMapper)
+
+	sort(&newSeeds)
+
+	lowestFound := false
+	for i := 0; !lowestFound; i++ {
+		numCrawl := i
+		crawlNumber(&numCrawl, &locations)
+		crawlNumber(&numCrawl, &tempurature)
+		crawlNumber(&numCrawl, &light)
+		crawlNumber(&numCrawl, &water)
+		crawlNumber(&numCrawl, &fertilizer)
+		crawlNumber(&numCrawl, &soil)
+		crawlNumber(&numCrawl, &mseeds)
+
+		for _, s := range newSeeds {
+			if numCrawl >= s[0] && numCrawl <= s[1] {
+				lowestFound = true
+				fmt.Println(i)
+			}
 		}
 	}
-	fmt.Println(newSeeds)
-	mappedSeeds := mapSeeds(newSeeds, mappings)
-	fmt.Println(calculateLowestLocation(mappedSeeds))
+
+	elapsedTime := time.Since(startTime)
+	fmt.Println("Runtime:", elapsedTime)
+
 }
 
-func mapSeeds(seeds []int, mappings map[string][]SourceToDestinationMapper) []MappedSeed {
-	mappedSeeds := []MappedSeed{}
-
-	for i := 0; i < len(seeds); i++ {
-		mappedSeed := MappedSeed{seed: seeds[i]}
-
-		seedToSoilMapping := mappings["seed-to-soil"]
-		for m := 0; m < len(seedToSoilMapping); m++ {
-			calculatedRange := seedToSoilMapping[m].rangeLength + seedToSoilMapping[m].sourceStart
-
-			for s := seedToSoilMapping[m].sourceStart; s < calculatedRange; s++ {
-				if seeds[i] == s {
-					mappedSeed.soil = seeds[i] + (seedToSoilMapping[m].destinationStart - seedToSoilMapping[m].sourceStart)
-					break
-				}
-			}
-			if mappedSeed.soil == 0 {
-				mappedSeed.soil = seeds[i]
-			}
-		}
-
-		soilToFertilizerMapping := mappings["soil-to-fertilizer"]
-		for m := 0; m < len(soilToFertilizerMapping); m++ {
-			calculatedRange := soilToFertilizerMapping[m].rangeLength + soilToFertilizerMapping[m].sourceStart
-
-			for s := soilToFertilizerMapping[m].sourceStart; s < calculatedRange; s++ {
-				if mappedSeed.soil == s {
-					mappedSeed.fertilizer = mappedSeed.soil + (soilToFertilizerMapping[m].destinationStart - soilToFertilizerMapping[m].sourceStart)
-					break
-				}
-			}
-			if mappedSeed.fertilizer == 0 {
-				mappedSeed.fertilizer = mappedSeed.soil
-			}
-		}
-
-		fertilizerToWaterMapping := mappings["fertilizer-to-water"]
-		for m := 0; m < len(fertilizerToWaterMapping); m++ {
-
-			calculatedRange := fertilizerToWaterMapping[m].rangeLength + fertilizerToWaterMapping[m].sourceStart
-
-			for s := fertilizerToWaterMapping[m].sourceStart; s < calculatedRange; s++ {
-				if mappedSeed.fertilizer == s {
-					mappedSeed.water = mappedSeed.fertilizer + (fertilizerToWaterMapping[m].destinationStart - fertilizerToWaterMapping[m].sourceStart)
-					break
-				}
-			}
-			if mappedSeed.water == 0 {
-				mappedSeed.water = mappedSeed.fertilizer
-			}
-		}
-
-		waterToLightMapping := mappings["water-to-light"]
-		for m := 0; m < len(waterToLightMapping); m++ {
-
-			calculatedRange := waterToLightMapping[m].rangeLength + waterToLightMapping[m].sourceStart
-
-			for s := waterToLightMapping[m].sourceStart; s < calculatedRange; s++ {
-				if mappedSeed.water == s {
-					mappedSeed.light = mappedSeed.water + (waterToLightMapping[m].destinationStart - waterToLightMapping[m].sourceStart)
-					break
-				}
-			}
-			if mappedSeed.light == 0 {
-				mappedSeed.light = mappedSeed.water
-			}
-		}
-
-		lightToTempuratureMapping := mappings["light-to-temperature"]
-		for m := 0; m < len(lightToTempuratureMapping); m++ {
-			calculatedRange := lightToTempuratureMapping[m].rangeLength + lightToTempuratureMapping[m].sourceStart
-			for s := lightToTempuratureMapping[m].sourceStart; s < calculatedRange; s++ {
-				if mappedSeed.light == s {
-					mappedSeed.tempurature = mappedSeed.light + (lightToTempuratureMapping[m].destinationStart - lightToTempuratureMapping[m].sourceStart)
-					break
-				}
-			}
-			if mappedSeed.tempurature == 0 {
-				mappedSeed.tempurature = mappedSeed.light
-			}
-		}
-
-		temperatureToHumidityMapping := mappings["temperature-to-humidity"]
-		for m := 0; m < len(temperatureToHumidityMapping); m++ {
-			calculatedRange := temperatureToHumidityMapping[m].rangeLength + temperatureToHumidityMapping[m].sourceStart
-			for s := temperatureToHumidityMapping[m].sourceStart; s < calculatedRange; s++ {
-				if mappedSeed.tempurature == s {
-					mappedSeed.humidity = mappedSeed.tempurature + (temperatureToHumidityMapping[m].destinationStart - temperatureToHumidityMapping[m].sourceStart)
-					break
-				}
-				if mappedSeed.humidity == 0 {
-					mappedSeed.humidity = mappedSeed.tempurature
-				}
-			}
-
-		}
-
-		humidityToLocationMapping := mappings["humidity-to-location"]
-		for m := 0; m < len(humidityToLocationMapping); m++ {
-			calculatedRange := humidityToLocationMapping[m].rangeLength + humidityToLocationMapping[m].sourceStart
-			for s := humidityToLocationMapping[m].sourceStart; s < calculatedRange; s++ {
-				if mappedSeed.humidity == s {
-					mappedSeed.location = mappedSeed.humidity + (humidityToLocationMapping[m].destinationStart - humidityToLocationMapping[m].sourceStart)
-					break
-				}
-				if mappedSeed.location == 0 {
-					mappedSeed.location = mappedSeed.humidity
-				}
-			}
-		}
-		fmt.Println(mappedSeed)
-		mappedSeeds = append(mappedSeeds, mappedSeed)
+func getMinMaxAndSort(l *[][]int, m []SourceToDestinationMapper) {
+	for i := 0; i < len(m); i++ {
+		min := m[i].destinationStart
+		max := m[i].destinationStart + (m[i].rangeLength - 1)
+		mapNumber := m[i].sourceStart - m[i].destinationStart
+		*l = append(*l, []int{min, max, mapNumber})
 	}
-
-	return mappedSeeds
+	sort(l)
 }
 
-func calculateLowestLocation(mappedSeeds []MappedSeed) int {
-	lowest := mappedSeeds[0].location
-	for i := 1; i < len(mappedSeeds); i++ {
-		if mappedSeeds[i].location < lowest {
-			lowest = mappedSeeds[i].location
+func sort(l *[][]int) {
+	n := len(*l)
+	swapped := true
+	for swapped {
+		swapped = false
+		for i := 0; i < n-1; i++ {
+			if (*l)[i][0] > (*l)[i+1][0] {
+				(*l)[i], (*l)[i+1] = (*l)[i+1], (*l)[i]
+				swapped = true
+			}
+		}
+		n--
+	}
+}
+
+func crawlNumber(numCrawl *int, mapper *[][]int) {
+	low, high := 0, len(*mapper)-1
+	for low <= high {
+		mid := low + (high-low)/2
+		m := (*mapper)[mid]
+		if *numCrawl >= m[0] && *numCrawl <= m[1] {
+			*numCrawl = *numCrawl + m[2]
+			return
+		} else if *numCrawl < m[0] {
+			high = mid - 1
+		} else {
+			low = mid + 1
 		}
 	}
-
-	return lowest
 }
